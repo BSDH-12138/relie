@@ -1,0 +1,101 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%@ page import="java.util.*" %>
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>市区町村選択</title>
+</head>
+<body>
+    <h1><%= request.getAttribute("pref") %>の市区町村</h1>
+
+    <form action="town" method="get">
+        <!-- 都道府県名を次の画面に渡す -->
+        <input type="hidden" name="pref" value="<%= request.getAttribute("pref") %>">
+
+<%
+    Map<String, List<String>> municipalityMap =
+        (Map<String, List<String>>) request.getAttribute("municipalityMap");
+
+    for (Map.Entry<String, List<String>> entry : municipalityMap.entrySet()) {
+        String row = entry.getKey();
+        List<String> municipalities = entry.getValue();
+%>
+        <div>
+            <!-- チェックボックス（あ行〜わ行） -->
+            <input type="checkbox" id="<%= row %>" 
+                   onchange="toggleSelect('<%= row %>')">
+            <label><%= row %></label>
+
+            <!-- ドロップダウン（最初は非表示） -->
+            <select id="select_<%= row %>" name="municipality" 
+                    style="display:none;">
+                <option value="">選択してください</option>
+<%
+        for (String municipality : municipalities) {
+%>
+                <option value="<%= municipality %>"><%= municipality %></option>
+<%
+        }
+%>
+            </select>
+        </div>
+<%
+    }
+%>
+        <br>
+        <button type="button" onclick="goNext()">次へ</button>
+    </form>
+
+    <p id="errorMsg" style="color:red; display:none;">
+        市区町村を選択してください
+    </p>
+
+<script>
+    // チェックボックスを押したらドロップダウンを表示
+    function toggleSelect(row) {
+        // 全部のドロップダウンを非表示にする
+        var selects = document.querySelectorAll('select');
+        var checkboxes = document.querySelectorAll('input[type=checkbox]');
+        
+        selects.forEach(function(s) { s.style.display = 'none'; });
+        checkboxes.forEach(function(c) {
+            if (c.id !== row) c.checked = false;
+        });
+
+        // 選択した行のドロップダウンだけ表示
+        var checkbox = document.getElementById(row);
+        var select = document.getElementById('select_' + row);
+        if (checkbox.checked) {
+            select.style.display = 'inline';
+        }
+    }
+
+    // 次へボタン
+    function goNext() {
+        // 選択されたドロップダウンの値を確認
+        var selects = document.querySelectorAll('select');
+        var selected = '';
+        selects.forEach(function(s) {
+            if (s.style.display !== 'none' && s.value !== '') {
+                selected = s.value;
+            }
+        });
+
+        if (selected === '') {
+            // 選択されていない場合
+            document.getElementById('errorMsg').style.display = 'block';
+        } else {
+            // 選択されている場合、次の画面へ
+            document.getElementById('errorMsg').style.display = 'none';
+            var pref = document.querySelector('input[name=pref]').value;
+            location.href = 'town?pref=' + encodeURIComponent(pref) 
+                          + '&municipality=' + encodeURIComponent(selected);
+        }
+    }
+</script>
+
+  <button onclick="location.href='municipality?pref=<%= pref %>'"><%= pref %></button>
+
+</body>
+</html>

@@ -1,0 +1,88 @@
+package todo;
+
+import java.io.BufferedReader;
+import java.io.FileInputStream;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+public class MunicipalityLoader {
+
+    // あ行〜わ行の定義
+    private static final Map<String, String> ROW_MAP = new LinkedHashMap<>();
+
+    static {
+        ROW_MAP.put("あ行", "アイウエオ");
+        ROW_MAP.put("か行", "カキクケコ");
+        ROW_MAP.put("さ行", "サシスセソ");
+        ROW_MAP.put("た行", "タチツテト");
+        ROW_MAP.put("な行", "ナニヌネノ");
+        ROW_MAP.put("は行", "ハヒフヘホ");
+        ROW_MAP.put("ま行", "マミムメモ");
+        ROW_MAP.put("や行", "ヤユヨ");
+        ROW_MAP.put("ら行", "ラリルレロ");
+        ROW_MAP.put("わ行", "ワヲン");
+    }
+
+    // 市区町村をあ行〜わ行に分類するメソッド
+    public static Map<String, List<String>> getMunicipalitiesByRow(
+            String csvPath, String pref) {
+
+        // あ行〜わ行の入れ物を準備
+        Map<String, List<String>> result = new LinkedHashMap<>();
+        for (String row : ROW_MAP.keySet()) {
+            result.put(row, new ArrayList<>());
+        }
+
+        try {
+            BufferedReader br = new BufferedReader(
+                new InputStreamReader(new FileInputStream(csvPath), "MS932")
+            );
+
+            String line;
+            boolean isFirst = true;
+            Set<String> seen = new LinkedHashSet<>();
+
+            while ((line = br.readLine()) != null) {
+                if (isFirst) { isFirst = false; continue; }
+
+                String[] cols = line.split(",", -1);
+                if (cols.length > 10) {
+                    String prefName = cols[7].trim();
+                    String municipality = cols[9].trim();
+                    String municipalityKana = cols[10].trim();
+
+                    // 選択された都道府県のみ
+                    if (!prefName.equals(pref)) continue;
+                    // 重複除去
+                    if (municipality.isEmpty() || seen.contains(municipality)) continue;
+                    seen.add(municipality);
+
+                    // カナの最初の文字であ行〜わ行に分類
+                    if (!municipalityKana.isEmpty()) {
+                        char firstChar = municipalityKana.charAt(0);
+                        for (Map.Entry<String, String> row : ROW_MAP.entrySet()) {
+                            if (row.getValue().indexOf(firstChar) >= 0) {
+                                result.get(row.getKey()).add(municipality);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            br.close();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        // 空の行を削除
+        result.entrySet().removeIf(e -> e.getValue().isEmpty());
+
+        return result;
+    }
+}

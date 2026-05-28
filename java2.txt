@@ -1,0 +1,35 @@
+package todo;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+
+import javax.servlet.RequestDispatcher;
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+@WebServlet("/municipality")
+public class MunicipalityServlet extends HttpServlet {
+
+    @Override
+    protected void doGet(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+
+        String pref = request.getParameter("pref");
+
+        String csvPath = getServletContext()
+                .getRealPath("/WEB-INF/data/zenkoku.csv");
+
+        Map<String, List<String>> municipalityMap =
+                MunicipalityLoader.getMunicipalitiesByRow(csvPath, pref);
+
+        request.setAttribute("pref", pref);
+        request.setAttribute("municipalityMap", municipalityMap);
+
+        RequestDispatcher rd = request.getRequestDispatcher("/WEB-INF/views/municipality.jsp");
+        rd.forward(request, response);
+    }
+}

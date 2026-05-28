@@ -1,0 +1,202 @@
+import java.util.Scanner;
+import java.util.ArrayList;
+import java.util.List;
+
+public class SqlStepByStepValidator {
+    public static void main(String[] args) {
+        
+        // ========================================================
+        // 0. 系统配置：白名单数组 与 模拟数据库（二维数组）
+        // ========================================================
+        String[] allowedColumns = {"ID", "NAME", "AGE", "EMAIL"}; 
+        String[] allowedTables = {"USERS", "ORDERS", "PRODUCTS"}; 
+
+        // 🧠 用二维数组模拟 USERS 表的数据！
+        // 每一行代表一个用户，四列依次对应：[0]ID, [1]NAME, [2]AGE, [3]EMAIL
+        String[][] dbMockData = {
+            {"1", "A100", "18", "a100@test.com"},
+            {"2", "B200", "25", "b200@test.com"},
+            {"3", "A100", "30", "a100_senior@test.com"},
+            {"4", "C300", "22", "c300@test.com"}
+        };
+
+        // ========================================================
+        // 1. 控制台输入待机与基础校验
+        // ========================================================
+        try (Scanner scr = new Scanner(System.in)) {
+            System.out.print("SQLSQLSQLを入力して下さい：");
+            String inputSql = scr.nextLine();
+
+            String upperSql = inputSql.toUpperCase().trim();
+
+            if (!upperSql.startsWith("SELECT ")) {
+                System.out.println("❌ エラー：SQL文は 'SELECT' で始まる必要があります。");
+                return;
+            }
+
+            int fromIndex = upperSql.indexOf("FROM ");
+            if (fromIndex == -1) {
+                System.out.println("❌ エラー：SQL文に 'FROM' が見つかりません。"); 
+                return;
+            }
+
+            // 截取 SELECT 和 FROM 之间的カラム部分
+            String columnsPart = upperSql.substring(7, fromIndex).trim();
+            if (columnsPart.isEmpty()) {
+                System.out.println("❌ エラー：カラム名が指定されていません。");
+                return;
+            }
+
+            // 确定用户到底要查询哪几个列，放进一个 List 里
+            List<String> targetColumns = new ArrayList<>();
+            if (columnsPart.equals("*")) {
+                // 如果是 *，说明 4 个合法列全都要看
+                for (String c : allowedColumns) targetColumns.add(c);
+            } else {
+                String[] inputColumns = columnsPart.split(",");
+                for (String col : inputColumns) {
+                    String trimmedCol = col.trim(); 
+                    boolean isColumnExist = false;
+                    for (String allowedCol : allowedColumns) {
+                        if (allowedCol.equals(trimmedCol)) {
+                            isColumnExist = true;
+                            break; 
+                        }
+                    }
+                    if (!isColumnExist) {
+                        System.out.println("❌ エラー：'" + trimmedCol + "' というカラムは配列に定義されていません。");
+                        return; 
+                    }
+                    targetColumns.add(trimmedCol); // 记录用户想要看的合法列
+                }
+            }
+
+            // 步骤 2 的表名白名单检查
+            String afterFrom = upperSql.substring(fromIndex + 5).trim();
+            String[] fromTokens = afterFrom.split("\\s+");
+            String extractedTable = fromTokens[0];
+
+            boolean isTableMatch = false;
+            for (String table : allowedTables) {
+                if (table.toUpperCase().equals(extractedTable)) {
+                    isTableMatch = true;
+                    break;
+                }
+            }
+            if (!isTableMatch) {
+                System.out.println("❌ エラー：'" + extractedTable + "' というテーブルは配列に定义されていません。");
+                return;
+            }
+
+            // ========================================================
+            // 2. WHERE 条件深度解析（用于指导二维数组筛选）
+            // ========================================================
+            int whereIndex = upperSql.indexOf("WHERE ");
+            
+            // 定义两个变量，用来记录 WHERE 后面到底在查哪个列、查什么值
+            String whereColumn = "";
+            String whereValue = "";
+            boolean hasWhereCondition = (whereIndex != -1);
+
+            if (hasWhereCondition) {
+                String afterWhereRaw = inputSql.substring(whereIndex + 6).trim();
+                
+                if (!afterWhereRaw.contains("=")) {
+                    System.out.println("❌ エラー：WHERE 句の条件に等号（=）がありません。");
+                    return;
+                }
+
+                // 提取 WHERE 后的列名
+                String[] whereTokens = afterWhereRaw.toUpperCase().split("\\s*=\\s*");
+                whereColumn = whereTokens[0].trim();
+
+                // 校验 WHERE 后的列名在不在白名单里
+                boolean isWhereColumnValid = false;
+                int whereColDbIndex = -1; // 顺便记录这个列在数据库二维数组里的第几列
+                for (int i = 0; i < allowedColumns.length; i++) {
+                    if (allowedColumns[i].equals(whereColumn)) {
+                        isWhereColumnValid = true;
+                        whereColDbIndex = i;
+                        break; 
+                    }
+                }
+                if (!isWhereColumnValid) {
+                    System.out.println("❌ エラー：'WHERE' のカラム '" + whereColumn + "' は配列にありません。");
+                    return; 
+                }
+
+                // 提取等号后面的真实数据，并剥离掉双引号
+                int equalsIndex = afterWhereRaw.indexOf("=");
+                String rawValuePart = afterWhereRaw.substring(equalsIndex + 1).replace("=", "").trim();
+                
+                if (rawValuePart.startsWith("\"") && rawValuePart.endsWith("\"") && rawValuePart.length() >= 2) {
+                    // 去掉前后的双引号，拿到纯粹的值，比如把 "A100" 变成 A100
+                    whereValue = rawValuePart.substring(1, rawValuePart.length() - 1);
+                } else {
+                    System.out.println("❌ エラー：データ [" + rawValuePart + "] にダブルクォーテーション（\"）が正しく付いていません。");
+                    return;
+                }
+            }
+
+            // ========================================================
+            // 🎉 核心新逻辑 3：根据解析结果，从二维数组筛选并打印数据
+            // ========================================================
+            System.out.println("\n✅ SQL 构文チェックすべて通過！データ一覧を出力します：");
+            System.out.println("--------------------------------------------------");
+            
+            // 3.1 打印表头（用户决定要看的列数）
+            for (String colName : targetColumns) {
+                System.out.print(colName + "\t\t");
+            }
+            System.out.println("\n--------------------------------------------------");
+
+            // 3.2 遍历二维数组（dbMockData）进行行筛选
+            int matchCount = 0;
+            for (int i = 0; i < dbMockData.length; i++) {
+                String[] rowData = dbMockData[i]; // 拿到当前这一行数据
+                
+                boolean shouldPrintThisRow = false;
+
+                if (!hasWhereCondition) {
+                    // 情况 A：没有 WHERE 条件，全放行
+                    shouldPrintThisRow = true;
+                } else {
+                    // 情况 B：有 WHERE 条件，比对对应列的值是否匹配
+                    // 找出 WHERE 条件列在二维数组中的位置
+                    int colIndexInDb = -1;
+                    for (int k = 0; k < allowedColumns.length; k++) {
+                        if (allowedColumns[k].equals(whereColumn)) {
+                            colIndexInDb = k;
+                            break;
+                        }
+                    }
+                    // 核心比对：拿二维数组里的数据和用户输入的值进行 equals 比对
+                    if (rowData[colIndexInDb].equals(whereValue)) {
+                        shouldPrintThisRow = true;
+                    }
+                }
+
+                // 3.3 如果这一行符合条件，就把它打印出来（只打印用户 SELECT 指定的列）
+                if (shouldPrintThisRow) {
+                    matchCount++;
+                    for (String colName : targetColumns) {
+                        // 找到这个列在原始二维数组里的索引
+                        int origIndex = -1;
+                        for (int m = 0; m < allowedColumns.length; m++) {
+                            if (allowedColumns[m].equals(colName)) {
+                                origIndex = m;
+                                break;
+                            }
+                        }
+                        // 打印对应的数据
+                        System.out.print(rowData[origIndex] + "\t\t");
+                    }
+                    System.out.println(); // 换行
+                }
+            }
+
+            System.out.println("--------------------------------------------------");
+            System.out.println("➔ 検索結果: " + matchCount + " 件のデータが見つかりました。");
+        }
+    }
+}
