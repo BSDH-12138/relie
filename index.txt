@@ -9,93 +9,105 @@
 <body>
     <h1><%= request.getAttribute("pref") %>の市区町村</h1>
 
-    <form action="town" method="get">
-        <!-- 都道府県名を次の画面に渡す -->
-        <input type="hidden" name="pref" value="<%= request.getAttribute("pref") %>">
+    <input type="hidden" id="pref" value="<%= request.getAttribute("pref") %>">
 
 <%
     Map<String, List<String>> municipalityMap =
         (Map<String, List<String>>) request.getAttribute("municipalityMap");
+%>
 
+    <!-- 每個行：radio + 行名 + 下拉選單 -->
+<%
     for (Map.Entry<String, List<String>> entry : municipalityMap.entrySet()) {
         String row = entry.getKey();
         List<String> municipalities = entry.getValue();
 %>
-        <div>
-            <!-- チェックボックス（あ行〜わ行） -->
-            <input type="checkbox" id="<%= row %>" 
-                   onchange="toggleSelect('<%= row %>')">
-            <label><%= row %></label>
-
-            <!-- ドロップダウン（最初は非表示） -->
-            <select id="select_<%= row %>" name="municipality" 
-                    style="display:none;">
-                <option value="">選択してください</option>
-<%
-        for (String municipality : municipalities) {
+    <div>
+        <input type="radio" name="selectedRow" value="<%= row %>" class="row-radio">
+        <strong><%= row %></strong>
+        <select class="municipality-select" data-row="<%= row %>" disabled>
+            <option value="">選択してください</option>
+<% 
+        for (String m : municipalities) { 
 %>
-                <option value="<%= municipality %>"><%= municipality %></option>
-<%
-        }
+            <option value="<%= m %>"><%= m %></option>
+<% 
+        } 
 %>
-            </select>
-        </div>
-<%
-    }
+        </select>
+    </div>
+<% 
+    } 
 %>
-        <br>
-        <button type="button" onclick="goNext()">次へ</button>
-    </form>
 
-    <p id="errorMsg" style="color:red; display:none;">
-        市区町村を選択してください
-    </p>
+    <br>
+    <button onclick="goNext()">次へ</button>
+    <button onclick="location.href='municipality?pref=<%= request.getAttribute("pref") %>'">戻る</button>
 
-<script>
-    // チェックボックスを押したらドロップダウンを表示
-    function toggleSelect(row) {
-        // 全部のドロップダウンを非表示にする
-        var selects = document.querySelectorAll('select');
-        var checkboxes = document.querySelectorAll('input[type=checkbox]');
-        
-        selects.forEach(function(s) { s.style.display = 'none'; });
-        checkboxes.forEach(function(c) {
-            if (c.id !== row) c.checked = false;
-        });
+    <p id="errorMsg" style="color:red; display:none;">市区町村を選択してください</p>
 
-        // 選択した行のドロップダウンだけ表示
-        var checkbox = document.getElementById(row);
-        var select = document.getElementById('select_' + row);
-        if (checkbox.checked) {
-            select.style.display = 'inline';
-        }
-    }
+    <script>
+        // 取得所有的 radio 和 select
+        let radios = document.querySelectorAll('.row-radio');
+        let selects = document.querySelectorAll('.municipality-select');
 
-    // 次へボタン
-    function goNext() {
-        // 選択されたドロップダウンの値を確認
-        var selects = document.querySelectorAll('select');
-        var selected = '';
-        selects.forEach(function(s) {
-            if (s.style.display !== 'none' && s.value !== '') {
-                selected = s.value;
+        // 當任何 radio 被點選時
+        function onRadioChange() {
+            let selectedRow = this.value;   // 例如 "あ行"
+            // 遍歷每個 select，只啟用屬於該行的
+            for (let i = 0; i < selects.length; i++) {
+                let select = selects[i];
+                if (select.getAttribute('data-row') === selectedRow) {
+                    select.disabled = false;
+                } else {
+                    select.disabled = true;
+                    select.value = "";   // 清空其他行的選擇
+                }
             }
-        });
-
-        if (selected === '') {
-            // 選択されていない場合
-            document.getElementById('errorMsg').style.display = 'block';
-        } else {
-            // 選択されている場合、次の画面へ
-            document.getElementById('errorMsg').style.display = 'none';
-            var pref = document.querySelector('input[name=pref]').value;
-            location.href = 'town?pref=' + encodeURIComponent(pref) 
-                          + '&municipality=' + encodeURIComponent(selected);
         }
-    }
-</script>
 
-  <button onclick="location.href='municipality?pref=<%= pref %>'"><%= pref %></button>
+        // 幫每個 radio 綁定事件
+        for (let i = 0; i < radios.length; i++) {
+            radios[i].addEventListener('change', onRadioChange);
+        }
 
+        // 次へ按鈕處理
+        function goNext() {
+            // 檢查哪個 radio 被選中
+            let selectedRadio = null;
+            for (let i = 0; i < radios.length; i++) {
+                if (radios[i].checked) {
+                    selectedRadio = radios[i];
+                    break;
+                }
+            }
+
+            if (!selectedRadio) {
+                document.getElementById('errorMsg').style.display = 'block';
+                return;
+            }
+
+            // 取得對應的 select 的值
+            let selectedRow = selectedRadio.value;
+            let targetSelect = null;
+            for (let i = 0; i < selects.length; i++) {
+                if (selects[i].getAttribute('data-row') === selectedRow) {
+                    targetSelect = selects[i];
+                    break;
+                }
+            }
+
+            let selectedValue = targetSelect.value;
+            if (selectedValue === "") {
+                document.getElementById('errorMsg').style.display = 'block';
+                return;
+            }
+
+            // 全部正確，跳轉
+            document.getElementById('errorMsg').style.display = 'none';
+            let pref = document.getElementById('pref').value;
+            location.href = 'town?pref=' + encodeURIComponent(pref) + '&municipality=' + encodeURIComponent(selectedValue);
+        }
+    </script>
 </body>
 </html>

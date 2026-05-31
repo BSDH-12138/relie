@@ -27,7 +27,7 @@ public class MunicipalityLoader {
         ROW_MAP.put("ら行", "ラリルレロ");
         ROW_MAP.put("わ行", "ワヲン");
     }
-
+    
     // 市区町村をあ行〜わ行に分類するメソッド
     public static Map<String, List<String>> getMunicipalitiesByRow(
             String csvPath, String pref) {
@@ -52,9 +52,9 @@ public class MunicipalityLoader {
 
                 String[] cols = line.split(",", -1);
                 if (cols.length > 10) {
-                    String prefName = cols[7].trim();
-                    String municipality = cols[9].trim();
-                    String municipalityKana = cols[10].trim();
+                    String prefName = cols[7].replace("\"", "").trim();
+                    String municipality = cols[9].replace("\"", "").trim();
+                    String municipalityKana = cols[10].replace("\"", "").trim();
 
                     // 選択された都道府県のみ
                     if (!prefName.equals(pref)) continue;
