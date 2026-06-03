@@ -9,6 +9,11 @@
 <body>
     <h1><%= request.getAttribute("pref") %>の市区町村</h1>
 
+
+ <button class="pref-btn tohoku" style="top:80px; left:430px;"
+            onclick="location.href='municipality?pref=青森県'">青森</button>
+
+
     <input type="hidden" id="pref" value="<%= request.getAttribute("pref") %>">
 
 <%
