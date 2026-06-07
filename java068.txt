@@ -1,0 +1,26 @@
+package todo;
+
+import java.util.*;
+import javax.servlet.*;
+import javax.servlet.annotation.*;
+
+@WebListener
+public class AppInitListener implements ServletContextListener {
+
+    @Override
+    public void contextInitialized(ServletContextEvent sce) {
+        ServletContext ctx = sce.getServletContext();
+
+        // csvPathはここだけ！
+        String csvPath = ctx.getRealPath("/WEB-INF/data/zenkoku.csv");
+
+        // 1回だけ読み込んでApplicationScopeに保存
+        List<String> allData = CsvLoader.loadAll(csvPath);
+        ctx.setAttribute("allData", allData);
+
+        System.out.println("CSV読み込み完了：" + allData.size() + "件");
+    }
+
+    @Override
+    public void contextDestroyed(ServletContextEvent sce) {}
+}

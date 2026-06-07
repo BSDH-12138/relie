@@ -1,0 +1,33 @@
+package todo;
+
+import java.io.*;
+import java.util.*;
+
+public class CsvLoader {
+
+    // CSVを1行ずつ読んでList<String>に保存
+    public static List<String> loadAll(String csvPath) {
+        List<String> result = new ArrayList<>();
+
+        try {
+            BufferedReader br = new BufferedReader(
+                new InputStreamReader(new FileInputStream(csvPath), "MS932")
+            );
+
+            String line;
+            boolean isFirst = true;
+
+            while ((line = br.readLine()) != null) {
+                // ヘッダーをスキップ
+                if (isFirst) { isFirst = false; continue; }
+                result.add(line);
+            }
+            br.close();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return result;
+    }
+}
