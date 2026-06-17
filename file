@@ -1,0 +1,57 @@
+import java.io.*;
+import java.util.*;
+
+public class FileWalker {
+    
+    // キーボード入力用（共通で使うのでフィールドに置く）
+    static BufferedReader keyboard = new BufferedReader(new InputStreamReader(System.in));
+    static boolean ended = false; // endが入力されたらtrueにする
+
+    public static void main(String[] args) throws IOException {
+        
+        File folder = new File("C:/your/folder/path");
+        
+        processFolder(folder);
+        
+        keyboard.close();
+        System.out.println("終了しました");
+    }
+    
+    // ① フォルダを処理するメソッド（再帰）
+    static void processFolder(File folder) throws IOException {
+        
+        File[] items = folder.listFiles();
+        if (items == null) return;
+        
+        for (File item : items) {
+            
+            if (ended) return; // endが押されたら全部止める
+            
+            if (item.isDirectory()) {
+                // ② サブフォルダなら再帰で中に入る
+                System.out.println("\n[フォルダ] " + item.getPath());
+                processFolder(item); // 自分自身を呼ぶ
+                
+            } else {
+                // ③ ファイルなら読むか確認する
+                System.out.println("\n--- ファイル: " + item.getName() + " ---");
+                System.out.print("Enterで読む / end で終了: ");
+                
+                String input = keyboard.readLine();
+                
+                if ("end".equalsIgnoreCase(input)) {
+                    ended = true;
+                    return;
+                }
+                
+                // ④ ファイル内容を読む
+                BufferedReader fileReader = new BufferedReader(new FileReader(item));
+                String line;
+                while ((line = fileReader.readLine()) != null) {
+                    System.out.println(line);
+                }
+                fileReader.close();
+            }
+        }
+    }
+}
