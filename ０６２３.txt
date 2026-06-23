@@ -1,0 +1,84 @@
+// Car.java
+public class Car {
+    private String name;
+    private double fuelCapacity;   // 燃料タンク容量(L)
+    private double fuelEfficiency; // 燃費(km/L)
+    private double speed;          // 速度(km/h)
+    private double refuelTime;     // 給油時間(h)
+
+    private double totalDistance;  // 総走行距離(km)
+    private double currentFuel;    // 現在の燃料(L)
+    private double refuelRemain;   // 給油残り時間(h)
+
+    public Car(String name, double fuelCapacity, double fuelEfficiency,
+               double speed, double refuelTime) {
+        this.name = name;
+        this.fuelCapacity = fuelCapacity;
+        this.fuelEfficiency = fuelEfficiency;
+        this.speed = speed;
+        this.refuelTime = refuelTime;
+        this.currentFuel = fuelCapacity;
+        this.totalDistance = 0;
+        this.refuelRemain = 0;
+    }
+
+    // 1時間分進める。目的地距離を受け取り、到着していたら到着地点で止まる
+    public void advanceOneHour(double destination) {
+        if (totalDistance >= destination) return; // 既に到着済み
+
+        double timeLeft = 1.0; // この時間内の残り時間(h)
+
+        while (timeLeft > 0) {
+            // 給油中の処理
+            if (refuelRemain > 0) {
+                double refueling = Math.min(refuelRemain, timeLeft);
+                refuelRemain -= refueling;
+                timeLeft -= refueling;
+                if (refuelRemain <= 0) {
+                    currentFuel = fuelCapacity; // 満タン
+                }
+                continue;
+            }
+
+            // 走行可能距離(燃料・目的地・時間の制限)
+            double fuelRange = currentFuel * fuelEfficiency;
+            double timeRange = speed * timeLeft;
+            double remaining = destination - totalDistance;
+
+            double canGo = Math.min(fuelRange, Math.min(timeRange, remaining));
+
+            // 進む
+            totalDistance += canGo;
+            currentFuel -= canGo / fuelEfficiency;
+
+            double usedTime = canGo / speed;
+            timeLeft -= usedTime;
+
+            // 目的地到着
+            if (totalDistance >= destination) break;
+
+            // 燃料切れ → 給油開始
+            if (currentFuel <= 0.0001 && timeLeft > 0) {
+                currentFuel = 0;
+                refuelRemain = refuelTime;
+            } else {
+                break; // 時間切れ
+            }
+        }
+    }
+
+    public String getStatus(double destination) {
+        boolean arrived = totalDistance >= destination;
+        return String.format("%-5s | 走行距離: %6.1f km | 残燃料: %.2f L | %s",
+                name,
+                Math.min(totalDistance, destination),
+                currentFuel,
+                arrived ? "★ 到着！" : "走行中");
+    }
+
+    public boolean hasArrived(double destination) {
+        return totalDistance >= destination;
+    }
+
+    public String getName() { return name; }
+}
