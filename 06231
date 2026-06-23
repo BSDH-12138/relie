@@ -1,0 +1,40 @@
+// Main.java
+import java.util.Scanner;
+
+public class Main {
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+
+        System.out.print("目的地までの距離を入力してください (km): ");
+        double destination = sc.nextDouble();
+
+        // 車のスペック: 容量10L, 燃費・速度は改造で変わる, 給油0.5h
+        Car carA = new Car("Aさん", 10, 30, 30, 0.5); // 燃費30km/L
+        Car carB = new Car("Bさん", 10, 10, 45, 0.5); // 速度45km/h
+
+        System.out.println("\n目的地: " + destination + " km");
+        System.out.println("=".repeat(55));
+        System.out.printf("%-5s | %-22s | %-10s | %s%n",
+                "名前", "走行距離", "残燃料", "状況");
+        System.out.println("-".repeat(55));
+
+        int hour = 0;
+        while (!carA.hasArrived(destination) || !carB.hasArrived(destination)) {
+            hour++;
+            carA.advanceOneHour(destination);
+            carB.advanceOneHour(destination);
+
+            System.out.println("【" + hour + " 時間後】");
+            System.out.println(carA.getStatus(destination));
+            System.out.println(carB.getStatus(destination));
+            System.out.println("-".repeat(55));
+
+            if (hour > 1000) break; // 無限ループ防止
+        }
+
+        System.out.println("\n=== 結果 ===");
+        System.out.println(carA.hasArrived(destination) ? "Aさん 到着" : "Aさん 未到着");
+        System.out.println(carB.hasArrived(destination) ? "Bさん 到着" : "Bさん 未到着");
+        sc.close();
+    }
+}
